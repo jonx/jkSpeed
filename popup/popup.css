@@ -1,0 +1,265 @@
+:root {
+  --bg-primary: #0f0f1a;
+  --bg-card: #1a1a2e;
+  --bg-button: #252545;
+  --bg-button-hover: #2f2f55;
+  --accent: #e94560;
+  --accent-hover: #ff6b81;
+  --accent-glow: rgba(233, 69, 96, 0.3);
+  --text: #eaeaea;
+  --text-muted: #7a7a9a;
+  --text-dim: #4a4a6a;
+  --border: rgba(255, 255, 255, 0.06);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  min-height: 100px;
+  max-height: 560px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+body::-webkit-scrollbar {
+  width: 6px;
+}
+
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--bg-button);
+  border-radius: 3px;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-primary);
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+}
+
+.logo h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.byline {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.byline:hover {
+  color: var(--text-muted);
+}
+
+#video-list {
+  padding: 8px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--bg-button);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state .icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.empty-state .hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.video-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.video-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.video-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.video-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.video-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-title .duration {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 10px;
+}
+
+.video-title .badge {
+  display: inline-flex;
+  padding: 1px 5px;
+  background: var(--bg-button);
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
+.current-speed {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.speed-btn,
+.ctrl-btn {
+  padding: 6px 8px;
+  background: var(--bg-button);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speed-btn:hover,
+.ctrl-btn:hover {
+  background: var(--bg-button-hover);
+  color: var(--text);
+}
+
+.speed-btn.active {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 0 12px var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.ctrl-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.play-btn.active {
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent);
+  border-color: rgba(233, 69, 96, 0.3);
+}
+
+.pip-btn.active {
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent);
+  border-color: rgba(233, 69, 96, 0.3);
+}
+
+.pip-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.error-state {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-muted);
+}
+
+.error-state p {
+  font-size: 12px;
+  line-height: 1.5;
+}

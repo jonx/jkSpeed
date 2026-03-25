@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "jkSpeed",
+  "version": "1.0.0",
+  "description": "Control playback speed of any HTML5 video, including in iframes. Play/pause, speed presets, and Picture-in-Picture.",
+  "homepage_url": "https://jkn.me/chrome",
+  "permissions": ["activeTab", "webNavigation"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16-inactive.png",
+      "32": "icons/icon32-inactive.png",
+      "48": "icons/icon48-inactive.png",
+      "128": "icons/icon128-inactive.png"
+    }
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
