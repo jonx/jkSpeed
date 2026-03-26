@@ -81,22 +81,110 @@ const DEFAULT_SHORTCUTS = {
 };
 
 let shortcuts = { ...DEFAULT_SHORTCUTS };
+let siteSpeed = null;       // remembered speed for current site
+let siteKey = null;         // hashed hostname
+let rememberEnabled = false;
 
-// Load saved shortcuts
-chrome.storage.sync.get('shortcuts', (result) => {
-  if (result.shortcuts) shortcuts = result.shortcuts;
+// Hash hostname so we never store readable URLs
+async function hashHostname(host) {
+  const data = new TextEncoder().encode(host);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+
+// Load saved shortcuts and site speed
+hashHostname(location.hostname).then(key => {
+  siteKey = key;
+  chrome.storage.sync.get(['shortcuts', 'siteSpeeds', 'rememberSpeed'], (result) => {
+    if (result.shortcuts) shortcuts = result.shortcuts;
+    rememberEnabled = result.rememberSpeed === true;
+    if (rememberEnabled && result.siteSpeeds && result.siteSpeeds[siteKey]) {
+      siteSpeed = result.siteSpeeds[siteKey];
+      applyRememberedSpeed();
+    }
+  });
 });
 
-// Listen for shortcut changes
+// Listen for storage changes
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.shortcuts) shortcuts = changes.shortcuts.newValue;
+  if (changes.rememberSpeed) rememberEnabled = changes.rememberSpeed.newValue === true;
+  if (changes.siteSpeeds && siteKey) {
+    const speeds = changes.siteSpeeds.newValue || {};
+    siteSpeed = speeds[siteKey] || null;
+  }
 });
+
+// Apply remembered speed to all current and future videos
+function applyRememberedSpeed() {
+  if (!siteSpeed) return;
+  document.querySelectorAll('video').forEach(v => {
+    if (v.readyState > 0 && v.playbackRate !== siteSpeed) {
+      v.playbackRate = siteSpeed;
+    }
+  });
+}
+
+// Save current speed for this site (called when user changes speed)
+function rememberSpeedForSite(speed) {
+  try {
+    if (!rememberEnabled || !chrome.runtime?.id || !siteKey) return;
+    chrome.storage.sync.get('siteSpeeds', (result) => {
+      const speeds = result.siteSpeeds || {};
+      if (speed === 1) {
+        delete speeds[siteKey]; // don't store 1x, it's the default
+      } else {
+        speeds[siteKey] = speed;
+      }
+      chrome.storage.sync.set({ siteSpeeds: speeds });
+    });
+  } catch { /* context invalidated */ }
+}
+
+// Watch for new videos and apply remembered speed
+const speedObserver = new MutationObserver(() => {
+  if (rememberEnabled && siteSpeed) applyRememberedSpeed();
+});
+speedObserver.observe(document.documentElement, { childList: true, subtree: true });
 
 function keyMatchesShortcut(e, sc) {
   return e.key === sc.key &&
     e.ctrlKey === sc.ctrl &&
     e.shiftKey === sc.shift &&
     e.altKey === sc.alt;
+}
+
+// Speed overlay on video
+function showSpeedOverlay(video, speed) {
+  let overlay = video._jkSpeedOverlay;
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
+      'padding:12px 24px;background:rgba(0,0,0,0.7);color:#fff;' +
+      'font:bold 42px system-ui,sans-serif;border-radius:10px;' +
+      'z-index:999999;pointer-events:none;transition:opacity 0.3s ease;opacity:0;';
+    video._jkSpeedOverlay = overlay;
+  }
+  // Position overlay relative to the video itself
+  if (video.style.position === '' || video.style.position === 'static') {
+    video.style.position = 'relative';
+  }
+  if (!overlay.parentElement || overlay.parentElement !== video.parentElement) {
+    // Use an absolutely positioned overlay anchored to the video's bounding box
+    const rect = video.getBoundingClientRect();
+    overlay.style.position = 'fixed';
+    overlay.style.top = (rect.top + rect.height / 2) + 'px';
+    overlay.style.left = (rect.left + rect.width / 2) + 'px';
+    document.body.appendChild(overlay);
+  } else {
+    const rect = video.getBoundingClientRect();
+    overlay.style.top = (rect.top + rect.height / 2) + 'px';
+    overlay.style.left = (rect.left + rect.width / 2) + 'px';
+  }
+  overlay.textContent = speed + 'x';
+  overlay.style.opacity = '1';
+  clearTimeout(overlay._hideTimer);
+  overlay._hideTimer = setTimeout(() => { overlay.style.opacity = '0'; }, 800);
 }
 
 // Capture phase = runs before the page's own listeners
@@ -137,7 +225,12 @@ document.addEventListener('keydown', (e) => {
     } else {
       video.playbackRate = Math.max(0.25, video.playbackRate - step);
     }
+    showSpeedOverlay(video, Math.round(video.playbackRate * 100) / 100);
   });
+  // Remember speed for this site
+  if (targets.length > 0) {
+    rememberSpeedForSite(Math.round(targets[0].playbackRate * 100) / 100);
+  }
 }, true);
 
 // Notify service worker about video presence on this page
@@ -167,6 +260,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const video = document.querySelectorAll('video')[message.videoIndex];
       if (video) {
         video.playbackRate = message.speed;
+        rememberSpeedForSite(Math.round(video.playbackRate * 100) / 100);
         sendResponse({ success: true, newSpeed: video.playbackRate });
       } else {
         sendResponse({ success: false, error: 'Video not found' });

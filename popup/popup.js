@@ -24,6 +24,7 @@ async function init() {
     await refreshVideos();
     refreshInterval = setInterval(refreshVideos, 2000);
     initShortcuts();
+    initRememberToggle();
   } catch (err) {
     showError('Could not connect to the page. Try reloading it.');
   }
@@ -399,5 +400,21 @@ async function initShortcuts() {
 
       document.addEventListener('keydown', onKey, true);
     });
+  });
+}
+
+// --- Remember speed toggle ---
+
+async function initRememberToggle() {
+  const toggle = document.getElementById('rememberSpeed');
+  const result = await chrome.storage.sync.get('rememberSpeed');
+  toggle.checked = result.rememberSpeed === true;
+
+  toggle.addEventListener('change', () => {
+    chrome.storage.sync.set({ rememberSpeed: toggle.checked });
+    // If turning off, clear all saved site speeds
+    if (!toggle.checked) {
+      chrome.storage.sync.remove('siteSpeeds');
+    }
   });
 }
