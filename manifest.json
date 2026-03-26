@@ -2,9 +2,9 @@
   "manifest_version": 3,
   "name": "jkSpeed",
   "version": "1.0.0",
-  "description": "Control playback speed of any HTML5 video, including in iframes. Play/pause, speed presets, and Picture-in-Picture.",
+  "description": "Control speed of any HTML5 video including Shorts and iframes. Speed up, slow down, play/pause, and Picture-in-Picture.",
   "homepage_url": "https://jkn.me/chrome",
-  "permissions": ["activeTab", "webNavigation"],
+  "permissions": ["activeTab", "webNavigation", "storage"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

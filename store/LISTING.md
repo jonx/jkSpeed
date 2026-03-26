@@ -4,17 +4,18 @@
 jkSpeed
 
 ## Short Description (132 chars max)
-Control playback speed of any HTML5 video, including in iframes. Play/pause, speed presets, and Picture-in-Picture.
+Control speed of any HTML5 video including Shorts and iframes. Speed up, slow down, play/pause, and Picture-in-Picture.
 
 ## Detailed Description
-Control the playback speed of any HTML5 video on any page — including videos embedded in iframes.
+Control the speed of any HTML5 video on any page — including YouTube Shorts and videos embedded in iframes.
 
 Features:
-- Detects all videos on the current page, including inside iframes
+- Detects all videos on the current page, including Shorts and iframes
 - Speed presets: 1x and 1.5x
 - Fine-tune speed with +/- 0.25x buttons
 - Play/pause toggle
-- Picture-in-Picture mode for any video
+- Picture-in-Picture mode — works on Shorts too
+- Customizable keyboard shortcuts (default: S slow down, D speed up)
 - Extension icon lights up when a video is detected
 - Automatically finds new videos as they load
 

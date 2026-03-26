@@ -73,6 +73,13 @@ header {
   letter-spacing: -0.3px;
 }
 
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
 .byline {
   font-size: 10px;
   color: var(--text-dim);
@@ -251,6 +258,40 @@ header {
 .pip-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.header-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shortcut-sep {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.shortcut-key {
+  padding: 1px 6px;
+  background: var(--bg-button);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-family: system-ui, monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shortcut-key:hover {
+  border-color: var(--text-dim);
+  color: var(--text);
+}
+
+.shortcut-key.recording {
+  border-color: var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+  color: var(--accent);
 }
 
 .error-state {

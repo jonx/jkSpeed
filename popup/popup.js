@@ -1,8 +1,15 @@
 const SPEED_PRESETS = [1, 1.5];
 const FINE_STEP = 0.25;
 
+const DEFAULT_SHORTCUTS = {
+  speedUp: { key: 'd', ctrl: false, shift: false, alt: false },
+  speedDown: { key: 's', ctrl: false, shift: false, alt: false }
+};
+
 let currentTabId = null;
 let refreshInterval = null;
+const videoFirstSeen = new Map(); // key -> timestamp
+let lastSeenUrl = null;
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -16,6 +23,7 @@ async function init() {
     currentTabId = tab.id;
     await refreshVideos();
     refreshInterval = setInterval(refreshVideos, 2000);
+    initShortcuts();
   } catch (err) {
     showError('Could not connect to the page. Try reloading it.');
   }
@@ -44,23 +52,53 @@ async function getAllVideos() {
   );
 
   const allVideos = [];
+  let currentUrl = null;
   results.forEach((result, i) => {
-    if (result.status === 'fulfilled' && result.value?.videos?.length > 0) {
-      result.value.videos.forEach(video => {
-        allVideos.push({
-          ...video,
-          frameId: frames[i].frameId,
-          frameUrl: frames[i].url
+    if (result.status === 'fulfilled' && result.value) {
+      if (frames[i].frameId === 0 && result.value.url) {
+        currentUrl = result.value.url;
+      }
+      if (result.value.videos?.length > 0) {
+        result.value.videos.forEach(video => {
+          allVideos.push({
+            ...video,
+            frameId: frames[i].frameId,
+            frameUrl: frames[i].url
+          });
         });
-      });
+      }
     }
   });
+
+  // SPA navigation detected — clear tracking state
+  if (currentUrl && currentUrl !== lastSeenUrl) {
+    lastSeenUrl = currentUrl;
+    videoFirstSeen.clear();
+  }
 
   return allVideos;
 }
 
 async function refreshVideos() {
   const videos = await getAllVideos();
+
+  // Track first-seen timestamp per video, sort newest first
+  const now = Date.now();
+  const currentKeys = new Set();
+  videos.forEach(v => {
+    const key = `${v.frameId}:${v.index}`;
+    currentKeys.add(key);
+    if (!videoFirstSeen.has(key)) videoFirstSeen.set(key, now);
+    v._key = key;
+    v._firstSeen = videoFirstSeen.get(key);
+  });
+
+  // Clean up stale entries
+  for (const key of videoFirstSeen.keys()) {
+    if (!currentKeys.has(key)) videoFirstSeen.delete(key);
+  }
+
+  videos.sort((a, b) => b._firstSeen - a._firstSeen);
   renderVideos(videos);
 }
 
@@ -90,12 +128,15 @@ function renderVideos(videos) {
   }
 
   const existingCards = container.querySelectorAll('.video-card');
-  const needsRebuild = existingCards.length !== videos.length;
+  const newKeys = videos.map(v => v._key).join(',');
+  const oldKeys = Array.from(existingCards).map(c => c.dataset.videoKey || '').join(',');
 
-  if (needsRebuild) {
+  if (newKeys !== oldKeys) {
     container.innerHTML = '';
     videos.forEach((video, i) => {
-      container.appendChild(createVideoCard(video, i));
+      const card = createVideoCard(video, i);
+      card.dataset.videoKey = video._key;
+      container.appendChild(card);
     });
   } else {
     videos.forEach((video, i) => {
@@ -113,11 +154,12 @@ function createVideoCard(video, index) {
   const isIframe = video.frameId !== 0;
   const duration = formatTime(video.duration);
   const rate = roundRate(video.playbackRate);
+  const addedAt = formatTimeOfDay(video._firstSeen);
 
   card.innerHTML = `
     <div class="video-header">
       <div class="video-info">
-        <div class="video-title" title="${escapeAttr(video.title)}">${escapeHtml(video.title)}${duration ? ` <span class="duration">${duration}</span>` : ''}${isIframe ? ' <span class="badge">iframe</span>' : ''}</div>
+        <div class="video-title" title="${escapeAttr(video.title)}">${escapeHtml(video.title)}${duration ? ` <span class="duration">${duration}</span>` : ''}${isIframe ? ' <span class="badge">iframe</span>' : ''} <span class="duration">${addedAt}</span></div>
       </div>
       <div class="current-speed" data-role="speed-display">${rate}x</div>
     </div>
@@ -184,6 +226,16 @@ function createVideoCard(video, index) {
 function updateVideoCard(card, video) {
   const rate = roundRate(video.playbackRate);
   card.dataset.currentRate = video.playbackRate;
+
+  const titleEl = card.querySelector('.video-title');
+  if (titleEl && titleEl.dataset.src !== video.title) {
+    const duration = formatTime(video.duration);
+    const isIframe = video.frameId !== 0;
+    titleEl.dataset.src = video.title;
+    titleEl.title = video.title;
+    titleEl.innerHTML = `${escapeHtml(video.title)}${duration ? ` <span class="duration">${duration}</span>` : ''}${isIframe ? ' <span class="badge">iframe</span>' : ''}`;
+  }
+
   const display = card.querySelector('[data-role="speed-display"]');
   if (display) display.textContent = `${rate}x`;
 
@@ -261,6 +313,12 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function formatTimeOfDay(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+}
+
 function roundRate(rate) {
   return Math.round(rate * 100) / 100;
 }
@@ -273,4 +331,73 @@ function escapeHtml(str) {
 
 function escapeAttr(str) {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// --- Shortcuts ---
+
+function formatShortcut(sc) {
+  const parts = [];
+  if (sc.ctrl) parts.push('Ctrl');
+  if (sc.alt) parts.push('Alt');
+  if (sc.shift) parts.push('Shift');
+  let key = sc.key;
+  if (key === ' ') key = 'Space';
+  else if (key.length === 1) key = key.toUpperCase();
+  parts.push(key);
+  return parts.join(' + ');
+}
+
+async function initShortcuts() {
+  const result = await chrome.storage.sync.get('shortcuts');
+  const shortcuts = result.shortcuts || DEFAULT_SHORTCUTS;
+
+  document.querySelectorAll('.shortcut-key').forEach(btn => {
+    const action = btn.dataset.action;
+    btn.textContent = formatShortcut(shortcuts[action]);
+
+    btn.addEventListener('click', () => {
+      // If another button is recording, cancel it
+      document.querySelectorAll('.shortcut-key.recording').forEach(other => {
+        if (other !== btn) {
+          other.classList.remove('recording');
+          other.textContent = formatShortcut(shortcuts[other.dataset.action]);
+        }
+      });
+
+      btn.classList.add('recording');
+      btn.textContent = 'Press a key...';
+
+      function onKey(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Ignore lone modifier presses
+        if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+
+        // Escape cancels
+        if (e.key === 'Escape') {
+          btn.classList.remove('recording');
+          btn.textContent = formatShortcut(shortcuts[action]);
+          document.removeEventListener('keydown', onKey, true);
+          return;
+        }
+
+        const newShortcut = {
+          key: e.key,
+          ctrl: e.ctrlKey,
+          shift: e.shiftKey,
+          alt: e.altKey
+        };
+
+        shortcuts[action] = newShortcut;
+        chrome.storage.sync.set({ shortcuts });
+
+        btn.classList.remove('recording');
+        btn.textContent = formatShortcut(newShortcut);
+        document.removeEventListener('keydown', onKey, true);
+      }
+
+      document.addEventListener('keydown', onKey, true);
+    });
+  });
 }
