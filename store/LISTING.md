@@ -16,6 +16,8 @@ Features:
 - Play/pause toggle
 - Real Picture-in-Picture — pops the video into a native OS window, unlike YouTube's built-in "miniplayer" that stays trapped inside the page. Works on Shorts too!
 - Customizable keyboard shortcuts (default: S slow down, D speed up) — overrides page shortcuts, fixing issues with YouTube shortcuts not working on non-US keyboards (e.g. French AZERTY)
+- Speed overlay — shows current speed on the video when using shortcuts
+- Remember speed per site — opt-in setting, hostnames are hashed for privacy
 - Extension icon lights up when a video is detected
 - Automatically finds new videos as they load
 

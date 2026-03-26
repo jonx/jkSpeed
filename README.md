@@ -11,6 +11,8 @@ Control the speed of any HTML5 video — including YouTube Shorts and videos ins
 - Play/pause toggle
 - **Real Picture-in-Picture** — pops the video out into a native OS window, unlike YouTube's built-in "miniplayer" that stays trapped inside the page
 - **Customizable keyboard shortcuts** (default: S to slow down, D to speed up) — overrides page shortcuts, fixing issues with YouTube shortcuts not working on non-US keyboards (e.g. French AZERTY MacBooks)
+- **Speed overlay** — shows current speed on the video when using shortcuts
+- **Remember speed per site** — opt-in setting that auto-applies your preferred speed per site. Hostnames are hashed for privacy.
 - Icon lights up when a video is detected on the page
 - Auto-refreshes to catch dynamically loaded videos
 
@@ -31,7 +33,7 @@ Control the speed of any HTML5 video — including YouTube Shorts and videos ins
 
 - **activeTab** — access the current tab when you click the extension icon
 - **webNavigation** — enumerate frames to find videos inside iframes
-- **storage** — save your keyboard shortcut preferences
+- **storage** — save your keyboard shortcuts and per-site speed preferences
 
 No data is collected, stored, or transmitted. See [Privacy Policy](PRIVACY.md).
 
