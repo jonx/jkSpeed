@@ -14,8 +14,8 @@ Features:
 - Speed presets: 1x and 1.5x
 - Fine-tune speed with +/- 0.25x buttons
 - Play/pause toggle
-- Picture-in-Picture mode — works on Shorts too
-- Customizable keyboard shortcuts (default: S slow down, D speed up)
+- Real Picture-in-Picture — pops the video into a native OS window, unlike YouTube's built-in "miniplayer" that stays trapped inside the page. Works on Shorts too!
+- Customizable keyboard shortcuts (default: S slow down, D speed up) — overrides page shortcuts, fixing issues with YouTube shortcuts not working on non-US keyboards (e.g. French AZERTY)
 - Extension icon lights up when a video is detected
 - Automatically finds new videos as they load
 
