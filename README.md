@@ -2,7 +2,7 @@
 
 Control the speed of any HTML5 video — including YouTube Shorts and videos inside iframes. Speed up, slow down, play/pause, and pop any video into real Picture-in-Picture.
 
-![jkSpeed screenshot](screenshot.png)
+![jkSpeed screenshot](Screenshot.png)
 
 ## Features
 
