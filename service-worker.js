@@ -12,9 +12,7 @@ const ICON_INACTIVE = {
   128: 'icons/icon128-inactive.png'
 };
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('jkSpeed extension installed');
-});
+chrome.runtime.onInstalled.addListener(() => {});
 
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.action === 'VIDEO_STATUS' && sender.tab) {

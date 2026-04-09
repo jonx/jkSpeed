@@ -29,8 +29,9 @@ How to use:
 Permissions explained:
 - activeTab: Access the current tab only when you click the extension
 - webNavigation: Find videos inside embedded iframes
+- storage: Save your shortcut preferences and optional site speed settings locally
 
-No data is collected, stored, or transmitted. Fully open source.
+No data is collected or transmitted. Site hostnames are salted and hashed if you enable "remember speed" — can't be easily reversed. Fully open source.
 
 ## Category
 Productivity
@@ -45,11 +46,6 @@ https://jkn.me/chrome
 https://github.com/jonx/jkSpeed/blob/main/PRIVACY.md
 
 ## Assets
-- promo-440x280.png — Small promotional tile
-- screenshot-1280x800.png — Screenshot placeholder (replace with actual screenshot)
+- promo-440x280.png — Small promotional tile (popup close-up with remember speed toggle)
+- screenshot-1280x800.png — Store screenshot (PiP demo on YouTube)
 - icons/icon128.png — Store icon (128x128)
-
-## Notes
-- Replace screenshot-1280x800.png with an actual screenshot of the extension in use
-- Chrome Web Store requires at least 1 screenshot (1280x800 or 640x400)
-- You can upload up to 5 screenshots

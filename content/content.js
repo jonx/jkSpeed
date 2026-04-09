@@ -85,25 +85,49 @@ let siteSpeed = null;       // remembered speed for current site
 let siteKey = null;         // hashed hostname
 let rememberEnabled = false;
 
-// Hash hostname so we never store readable URLs
+// Salted hash of hostname — salt is per-install, stored locally, never synced
+async function getSalt() {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.storage.local.get('salt', (result) => {
+        if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
+        if (result.salt) return resolve(result.salt);
+        const salt = crypto.getRandomValues(new Uint8Array(32));
+        const hex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+        chrome.storage.local.set({ salt: hex });
+        resolve(hex);
+      });
+    } catch (e) { reject(e); }
+  });
+}
+
 async function hashHostname(host) {
-  const data = new TextEncoder().encode(host);
+  const salt = await getSalt();
+  const data = new TextEncoder().encode(salt + ':' + host);
   const buf = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 }
 
-// Load saved shortcuts and site speed
-hashHostname(location.hostname).then(key => {
-  siteKey = key;
-  chrome.storage.sync.get(['shortcuts', 'siteSpeeds', 'rememberSpeed'], (result) => {
-    if (result.shortcuts) shortcuts = result.shortcuts;
-    rememberEnabled = result.rememberSpeed === true;
-    if (rememberEnabled && result.siteSpeeds && result.siteSpeeds[siteKey]) {
-      siteSpeed = result.siteSpeeds[siteKey];
-      applyRememberedSpeed();
-    }
-  });
-});
+// Load saved shortcuts and site speed — safely handle missing hostname
+(async () => {
+  try {
+    const host = location?.hostname;
+    if (!host) return;
+    siteKey = await hashHostname(host);
+  } catch { return; }
+
+  try {
+    chrome.storage.sync.get(['shortcuts', 'siteSpeeds', 'rememberSpeed'], (result) => {
+      if (chrome.runtime.lastError) return;
+      if (result.shortcuts) shortcuts = result.shortcuts;
+      rememberEnabled = result.rememberSpeed === true;
+      if (rememberEnabled && result.siteSpeeds && result.siteSpeeds[siteKey]) {
+        siteSpeed = result.siteSpeeds[siteKey];
+        applyRememberedSpeed();
+      }
+    });
+  } catch { /* context invalidated */ }
+})();
 
 // Listen for storage changes
 chrome.storage.onChanged.addListener((changes) => {
@@ -126,24 +150,37 @@ function applyRememberedSpeed() {
 }
 
 // Save current speed for this site (called when user changes speed)
+const MAX_SITES = 500;
 function rememberSpeedForSite(speed) {
   try {
     if (!rememberEnabled || !chrome.runtime?.id || !siteKey) return;
     chrome.storage.sync.get('siteSpeeds', (result) => {
+      if (chrome.runtime.lastError) return;
       const speeds = result.siteSpeeds || {};
       if (speed === 1) {
-        delete speeds[siteKey]; // don't store 1x, it's the default
+        delete speeds[siteKey];
       } else {
         speeds[siteKey] = speed;
+      }
+      // Cap entries to avoid storage bloat — remove oldest (first keys)
+      const keys = Object.keys(speeds);
+      if (keys.length > MAX_SITES) {
+        keys.slice(0, keys.length - MAX_SITES).forEach(k => delete speeds[k]);
       }
       chrome.storage.sync.set({ siteSpeeds: speeds });
     });
   } catch { /* context invalidated */ }
 }
 
-// Watch for new videos and apply remembered speed
+// Watch for new videos and apply remembered speed (debounced)
+let speedObserverTimer = null;
 const speedObserver = new MutationObserver(() => {
-  if (rememberEnabled && siteSpeed) applyRememberedSpeed();
+  if (!rememberEnabled || !siteSpeed) return;
+  if (speedObserverTimer) return;
+  speedObserverTimer = setTimeout(() => {
+    speedObserverTimer = null;
+    applyRememberedSpeed();
+  }, 500);
 });
 speedObserver.observe(document.documentElement, { childList: true, subtree: true });
 
@@ -154,14 +191,131 @@ function keyMatchesShortcut(e, sc) {
     e.altKey === sc.alt;
 }
 
+// Fun messages when speeding up
+const SPEED_UP_MSGS = [
+  'Go go go!',
+  'Faster!',
+  'Never fast enough',
+  'I got you',
+  'Zoom zoom',
+  'Time is money',
+  'Ain\'t nobody got time',
+  'Gotta go fast',
+  'Ludicrous speed!',
+  'Warp drive engaged',
+  'Life\'s too short',
+  'Speed demon',
+  'No brakes!',
+  'Let\'s gooo',
+  'Turbo mode',
+  'Pedal to the metal',
+  'Full throttle',
+  'Buckle up',
+  'Hopla!',
+  'Hold on tight',
+  'Here we go!',
+  'Hyperdrive!',
+  'Sonic boom',
+  'Light speed!',
+  'Vroom vroom',
+  'Speedy Gonzales',
+  'Catch me if you can',
+  'Eat my dust',
+  'Later, slowpoke',
+  'Who needs patience',
+  'Patience is overrated',
+  'TLDR mode',
+  'Bim!',
+  'Zouh',
+  'Skip the drama',
+  'Get to the point',
+  'Chop chop',
+  'No time to waste',
+  'Express lane',
+  'Fast forward life',
+  'On the double',
+  'Quick quick!',
+  'Hustle mode',
+  'Max velocity',
+  'Full send',
+  'To infinity!',
+  'Need for speed',
+  'Speed run!',
+  'Any% speedrun',
+  'Blitz mode',
+  'Rapid fire',
+  'Supersonic',
+  'Breaking the sound barrier',
+  'Mach 1',
+  'Terminal velocity',
+  'Escape velocity',
+  'Warp factor 9',
+  'Make it so',
+  'Engage!',
+  'Punch it, Chewie',
+  'Floor it!',
+  'Hammer down',
+  'Nitro boost',
+  'Afterburner on',
+  'Turbo charged',
+  'Beast mode',
+  'Unstoppable',
+  'Can\'t slow me down',
+  'Yeehaw!',
+  'Let\'s fly',
+  'Feet don\'t fail me',
+  'Running late?',
+  'Efficiency 100',
+  'Productivity hack',
+  'Life hack unlocked',
+  '200 IQ move',
+  'Big brain time',
+  'Speedrunning life',
+  'Time wizard',
+  'Clock\'s ticking',
+  'Race mode',
+  'Pole position',
+  'Checkered flag',
+  'Victory lap',
+  'First place energy',
+  'Champion speed',
+  'Built different',
+  'No chill',
+  'Zero patience',
+  'Impatience is a virtue',
+  'Why walk when you can fly',
+  'Blink and you\'ll miss it',
+  'Keep up!',
+  'Try to follow',
+  'Already there',
+  'Speed of light',
+  'Quantum leap',
+  'Teleport mode',
+  'Instant transmission',
+  'Too slow!',
+  'Way ahead of you',
+  'Respect the hustle',
+  'Grind never stops',
+  'Sleep is for the weak',
+  'More content, less wait',
+];
+
+let lastMsgIndex = -1;
+function getSpeedUpMsg() {
+  let i;
+  do { i = Math.floor(Math.random() * SPEED_UP_MSGS.length); } while (i === lastMsgIndex);
+  lastMsgIndex = i;
+  return SPEED_UP_MSGS[i];
+}
+
 // Speed overlay on video
-function showSpeedOverlay(video, speed) {
+function showSpeedOverlay(video, speed, direction) {
   let overlay = video._jkSpeedOverlay;
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
       'padding:12px 24px;background:rgba(0,0,0,0.7);color:#fff;' +
-      'font:bold 42px system-ui,sans-serif;border-radius:10px;' +
+      'text-align:center;border-radius:10px;' +
       'z-index:999999;pointer-events:none;transition:opacity 0.3s ease;opacity:0;';
     video._jkSpeedOverlay = overlay;
   }
@@ -181,7 +335,11 @@ function showSpeedOverlay(video, speed) {
     overlay.style.top = (rect.top + rect.height / 2) + 'px';
     overlay.style.left = (rect.left + rect.width / 2) + 'px';
   }
-  overlay.textContent = speed + 'x';
+  if (direction === 'up') {
+    overlay.innerHTML = `<div style="font:bold 42px system-ui,sans-serif">${speed}x</div><div style="font:14px system-ui,sans-serif;opacity:0.8;margin-top:4px">${getSpeedUpMsg()}</div>`;
+  } else {
+    overlay.innerHTML = `<div style="font:bold 42px system-ui,sans-serif">${speed}x</div>`;
+  }
   overlay.style.opacity = '1';
   clearTimeout(overlay._hideTimer);
   overlay._hideTimer = setTimeout(() => { overlay.style.opacity = '0'; }, 800);
@@ -225,7 +383,7 @@ document.addEventListener('keydown', (e) => {
     } else {
       video.playbackRate = Math.max(0.25, video.playbackRate - step);
     }
-    showSpeedOverlay(video, Math.round(video.playbackRate * 100) / 100);
+    showSpeedOverlay(video, Math.round(video.playbackRate * 100) / 100, matched === 'speedUp' ? 'up' : 'down');
   });
   // Remember speed for this site
   if (targets.length > 0) {

@@ -269,7 +269,7 @@ async function setSpeed(frameId, videoIndex, speed) {
     );
     await refreshVideos();
   } catch (err) {
-    console.error('Failed to set speed:', err);
+    // speed change failed silently
   }
 }
 
@@ -282,7 +282,7 @@ async function togglePlay(frameId, videoIndex) {
     );
     await refreshVideos();
   } catch (err) {
-    console.error('Failed to toggle play:', err);
+    // toggle play failed silently
   }
 }
 
@@ -295,7 +295,7 @@ async function togglePip(frameId, videoIndex) {
     );
     await refreshVideos();
   } catch (err) {
-    console.error('Failed to toggle PiP:', err);
+    // toggle PiP failed silently
   }
 }
 
